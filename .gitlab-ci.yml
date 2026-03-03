@@ -42,7 +42,12 @@ run_code_tests:
     - python3 -m unittest discover -s ${TEST_DIR} -p ${TEST_PATTERN} -v
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+      changes: &change_files
+          - "**/*.py"
+          - "**/*.yaml"
+          - "**/*.yml"
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes: *change_files
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
 
