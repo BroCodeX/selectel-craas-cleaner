@@ -1,0 +1,52 @@
+import re
+from loguru import logger
+
+
+def get_image_tags(image):
+    tags = image.get("tags")
+    if isinstance(tags, list):
+        return [t for t in tags if isinstance(t, str)]
+    return []
+
+
+def image_matches_regexp(repo_name, image, regexp):
+    if not regexp:
+        return False
+
+    tags = get_image_tags(image)
+    for tag in tags:
+        image_ref = f"{repo_name}:{tag}"
+        try:
+            if re.search(regexp, image_ref):
+                return True
+        except re.error as e:
+            logger.critical(f"Invalid regexp '{regexp}': {e}")
+            raise
+    return False
+
+
+def split_images_by_rules(repo_name, images, cleanup_rules):
+    grouped = {}
+    assigned = set()
+
+    # Rule order: first match wins - images matched by one rule won't be considered for the next ones
+    for rule_name, rule in cleanup_rules.items():
+        regexp = rule.get("regexp")
+        grouped[rule_name] = []
+
+        for image in images:
+            digest = image.get("digest")
+            if not digest or digest in assigned:
+                continue
+
+            if image_matches_regexp(repo_name, image, regexp):
+                grouped[rule_name].append(image)
+                assigned.add(digest)
+
+    unmatched = []
+    for image in images:
+        digest = image.get("digest")
+        if digest and digest not in assigned:
+            unmatched.append(image)
+
+    return grouped, unmatched

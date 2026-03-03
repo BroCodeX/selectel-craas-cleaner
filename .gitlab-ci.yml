@@ -1,0 +1,85 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: always
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: always
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+    - when: never
+
+stages:
+  - test
+  - plan
+  - cleanup
+
+variables:
+  KEEP_LAST_N: "10"
+  PYTHON_IMAGE: registry.example.ru/devops/docker-images/python:latest
+
+.python_env:
+  image:
+    name: ${PYTHON_IMAGE}
+    entrypoint: [ "" ]
+  tags: &docker-runner
+    - some-runner01
+
+# ---------------- TEST ----------------
+run_code_tests:
+  extends: .python_env
+  stage: test
+  variables:
+    PYTHONDONTWRITEBYTECODE: "1"
+    PYLINT_OPTS: "--disable=all --enable=F,E,W --disable=W0718 --fail-under=9.0"
+    PYLINT_FILES: "*.py"
+    TEST_DIR: "tests"
+    TEST_PATTERN: "test_*.py"
+  script:
+    - pylint ${PYLINT_OPTS} ${PYLINT_FILES}
+    - python3 -m unittest discover -s ${TEST_DIR} -p ${TEST_PATTERN} -v
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+# ---------------- PLAN ----------------
+registry_cleanup_plan:
+  extends: .python_env
+  needs: ["run_code_tests"]
+  stage: plan
+  tags: *docker-runner
+  script:
+    - python cleanup_registry.py
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+      variables:
+        DRY_RUN: "true"
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      variables:
+        DRY_RUN: "true"
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+
+# ---------------- CLEANUP ----------------
+registry_cleanup_execute:
+  extends: .python_env
+  needs: ["run_code_tests"]
+  stage: cleanup
+  tags: *docker-runner
+  script:
+    - python cleanup_registry.py
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      variables:
+        DRY_RUN: "false"
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+      variables:
+        DRY_RUN: "false"
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      variables:
+        DRY_RUN: "false"

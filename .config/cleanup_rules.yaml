@@ -1,0 +1,13 @@
+cleanup_rules:
+  logistics_release_app:
+    regexp: logistics-service\:.*-release-.*-app-.*
+    keep_latest: 10
+  logistics_review:
+    regexp: logistics-service\:.*-review-.*
+    keep_latest: 1
+  all_release:
+    regexp: .*\:.*-release-.*
+    keep_latest: 5
+  all_review:
+    regexp: .*\:.*-review-.*
+    keep_latest: 2
