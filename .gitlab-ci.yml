@@ -49,7 +49,6 @@ run_code_tests:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes: *change_files
     - if: '$CI_PIPELINE_SOURCE == "web"'
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
 
 # ---------------- PLAN ----------------
 registry_cleanup_plan:
