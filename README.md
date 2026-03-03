@@ -66,7 +66,8 @@ source venv/bin/activate
 
 2. Установить зависимости:
 ```bash
-pip3 install requests pyyaml loguru
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
 2. Задать переменные окружения.
