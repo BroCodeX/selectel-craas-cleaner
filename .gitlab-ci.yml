@@ -36,13 +36,14 @@ run_code_tests:
     PYLINT_OPTS: "--disable=all --enable=F,E,W --disable=W0718 --fail-under=9.0"
     PYLINT_FILES: "*.py"
     TEST_DIR: "tests"
+    JUNITXML: "report.xml"
   script:
     - pylint ${PYLINT_OPTS} ${PYLINT_FILES}
-    - python3 -m pytest --junitxml=report.xml --color=yes ${TEST_DIR}
+    - python3 -m pytest --junitxml=${JUNITXML} --color=yes ${TEST_DIR}
   artifacts:
       when: always
       reports:
-        junit: report.xml
+        junit: ${JUNITXML}
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
       changes: &change_files
