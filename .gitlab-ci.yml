@@ -38,7 +38,7 @@ run_code_tests:
     TEST_DIR: "tests"
   script:
     - pylint ${PYLINT_OPTS} ${PYLINT_FILES}
-    - python3 -m pytest --junitxml=report.xml ${TEST_DIR}
+    - python3 -m pytest --junitxml=report.xml --color=yes ${TEST_DIR}
   artifacts:
       when: always
       reports:
