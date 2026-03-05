@@ -34,15 +34,6 @@ class Settings:
             logger.critical("Missing environment variables!")
             sys.exit(1)
 
-def setup_logging():
-    logger.remove()
-    logger.level("HEADER", no=21, color="<magenta><bold>")
-    logger.add(
-        sys.stderr,
-        format="<level>{time:HH:mm:ss}</level> | <level>{message}</level>",
-        colorize=True
-    )
-
 def create_session() -> requests.Session:
     session = requests.Session()
     session.trust_env = False
@@ -100,7 +91,6 @@ def get_auth_token(session: requests.Session, settings: Settings) -> str:
     return token
 
 def main():
-    setup_logging()
     settings = Settings()
     settings.validate()
     
