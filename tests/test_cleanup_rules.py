@@ -137,3 +137,96 @@ def test_invalid_regexp_raises_error():
 
     with pytest.raises(re.error):
         split_images_by_rules("admin-gf", images, rules)
+
+
+def test_untagged_image_no_tags_field_goes_to_unmatched():
+    """Image without 'tags' key at all must fall into unmatched, not silently disappear."""
+    rules = {
+        "catch_all": {
+            "regexp": r".*:.*",
+            "keep_latest": 1,
+        }
+    }
+    images = [
+        {
+            "digest": "sha256:untagged-1",
+            "createdAt": "2026-03-01T10:00:00Z",
+            # no 'tags' key
+        }
+    ]
+
+    grouped, unmatched = split_images_by_rules("myapp", images, rules)
+
+    assert grouped["catch_all"] == []
+    assert [i["digest"] for i in unmatched] == ["sha256:untagged-1"]
+
+
+def test_untagged_image_empty_tags_goes_to_unmatched():
+    """Image with tags=[] must fall into unmatched."""
+    rules = {
+        "catch_all": {
+            "regexp": r".*:.*",
+            "keep_latest": 1,
+        }
+    }
+    images = [
+        {
+            "digest": "sha256:untagged-2",
+            "createdAt": "2026-03-01T10:00:00Z",
+            "tags": [],
+        }
+    ]
+
+    grouped, unmatched = split_images_by_rules("myapp", images, rules)
+
+    assert grouped["catch_all"] == []
+    assert [i["digest"] for i in unmatched] == ["sha256:untagged-2"]
+
+
+def test_untagged_image_null_tags_goes_to_unmatched():
+    """Image with tags=null must fall into unmatched."""
+    rules = {
+        "catch_all": {
+            "regexp": r".*:.*",
+            "keep_latest": 1,
+        }
+    }
+    images = [
+        {
+            "digest": "sha256:untagged-3",
+            "createdAt": "2026-03-01T10:00:00Z",
+            "tags": None,
+        }
+    ]
+
+    grouped, unmatched = split_images_by_rules("myapp", images, rules)
+
+    assert grouped["catch_all"] == []
+    assert [i["digest"] for i in unmatched] == ["sha256:untagged-3"]
+
+
+def test_mix_tagged_and_untagged_images():
+    """Untagged images must not interfere with matching of tagged images."""
+    rules = {
+        "catch_all": {
+            "regexp": r".*:.*",
+            "keep_latest": 5,
+        }
+    }
+    images = [
+        {
+            "digest": "sha256:tagged",
+            "createdAt": "2026-03-01T10:00:00Z",
+            "tags": ["v1.0"],
+        },
+        {
+            "digest": "sha256:untagged",
+            "createdAt": "2026-03-01T09:00:00Z",
+            "tags": [],
+        },
+    ]
+
+    grouped, unmatched = split_images_by_rules("myapp", images, rules)
+
+    assert [i["digest"] for i in grouped["catch_all"]] == ["sha256:tagged"]
+    assert [i["digest"] for i in unmatched] == ["sha256:untagged"]

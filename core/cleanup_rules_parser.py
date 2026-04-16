@@ -21,7 +21,7 @@ def image_matches_regexp(repo_name, image, regexp):
             if re.search(regexp, image_ref):
                 return True
         except re.error as e:
-            logger.critical(f"Invalid regexp '{regexp}': {e}")
+            logger.critical(f"Fail during match '{regexp}': {e} on image '{image_ref}'")
             raise
     return False
 

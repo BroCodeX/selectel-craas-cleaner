@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from loguru import logger
 
 GET_TIMEOUT = 15
@@ -43,7 +45,7 @@ def get_repositories(session, base_url, registry_id, token):
 def get_images(session, base_url, registry_id, token, repo_name):
     logger.log("HEADER", f"=== get_images() repo={repo_name} ===")
 
-    url = f"{base_url}/registries/{registry_id}/repositories/{repo_name}/images"
+    url = f"{base_url}/registries/{registry_id}/repositories/{quote(repo_name, safe='')}/images"
     res = session.get(url, headers=_get_auth_header(token), timeout=GET_TIMEOUT)
 
     logger.debug(f"Images status {repo_name}: {res.status_code}")
@@ -65,7 +67,7 @@ def delete_image(session, base_url, registry_id, token, repo_name, digest, dry_r
         logger.info(f"[DRY-RUN] Would delete {repo_name} {digest}")
         return
 
-    url = f"{base_url}/registries/{registry_id}/repositories/{repo_name}/{digest}"
+    url = f"{base_url}/registries/{registry_id}/repositories/{quote(repo_name, safe='')}/{digest}"
     res = session.delete(url, headers=_get_auth_header(token), timeout=DELETE_TIMEOUT)
 
     logger.debug(f"Delete status {digest}: {res.status_code}")

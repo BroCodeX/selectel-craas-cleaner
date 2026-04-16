@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import yaml
 from loguru import logger
@@ -29,9 +30,16 @@ def load_cleanup_config():
             logger.critical(f"Rule '{rule_name}' must be a dictionary")
             sys.exit(1)
 
-        regexp = rule.get(ConfigFields.REGEXP.value)
-        if not isinstance(regexp, str) or not regexp.strip():
-            logger.critical(f"Rule '{rule_name}' has no valid regexp")
+        regexp = rule.get(ConfigFields.REGEXP.value).strip()
+        if not isinstance(regexp, str):
+            logger.critical(f"Rule '{rule_name}' is not a string")
+            sys.exit(1)
+        
+        # Rexexp check
+        try:
+            re.compile(regexp)
+        except re.error as e:
+            logger.critical(f"Rule '{rule_name}' has invalid regexp '{regexp}': {e}")
             sys.exit(1)
 
     logger.success(f"Cleanup config from {clean_config_path} loaded")
