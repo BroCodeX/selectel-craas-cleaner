@@ -61,7 +61,7 @@ cleanup_rules:
 
 Опционально:
 - `DRY_RUN` (`true`/`false`, по умолчанию `false`)
-- `CLEAN_CONFIG_PATH` (по умолчанию `.config/cleanup_rules.yaml`)
+- `CLEAN_CONFIG_PATH` (по умолчанию `rules/cleanup_rules_default.yaml`)
 
 ## Локальный запуск (Python)
 Требуется Python 3.11+.
@@ -99,6 +99,10 @@ Pipeline описан в [.gitlab-ci.yml](.gitlab-ci.yml).
 Рекомендуется:
 - `SEL_USERNAME`, `SEL_PASSWORD` сделать `Masked` и `Protected`.
 - `SEL_ACCOUNT_ID`, `SEL_PROJECT_NAME`, `SEL_REGISTRY_ID` добавить как обычные переменные проекта/группы.
+
+Окружения описаны матричной джобой:
+- `dev`: development окружение / регистри / правила очистки.
+- `prod`: production окружение / регистри / правила очистки.
 
 ## Тесты
 ```bash
