@@ -66,6 +66,7 @@ def test_delete_image_calls_registry_api():
         token="token-1",
         repo_name="logistics-service",
         digest="sha256:abc",
+        tag="latest",
         dry_run=False,
     )
 

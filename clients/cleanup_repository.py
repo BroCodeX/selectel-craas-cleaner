@@ -1,9 +1,12 @@
+import time
 from urllib.parse import quote
 
 from loguru import logger
 
 GET_TIMEOUT = 15
 DELETE_TIMEOUT = 10
+DELETE_RETRY_COUNT = 4
+DELETE_RETRY_DELAY = 10
 
 def _get_auth_header(token) -> dict:
     return {"X-Auth-Token": token}
@@ -25,11 +28,10 @@ def _handle_api_response(res, context):
     return res.json()
 
 def get_repositories(session, base_url, registry_id, token):
-    logger.log("HEADER", "=== get_repositories() ===")
+    logger.log("HEADER", "Get repositories")
 
     url = f"{base_url}/registries/{registry_id}/repositories"
     res = session.get(url, headers=_get_auth_header(token), timeout=15)
-    logger.debug(f"Repo status: {res.status_code}")
     
     context = f"Registry {registry_id}"
 
@@ -38,17 +40,16 @@ def get_repositories(session, base_url, registry_id, token):
         logger.critical(f"Unexpected repositories response: {data}")
         return []
 
-    logger.success(f"Repositories found: {len(data)}")
+    logger.success(f"Repositories found: {[r['name'] for r in data]}")
     return data
 
 
 def get_images(session, base_url, registry_id, token, repo_name):
-    logger.log("HEADER", f"=== get_images() repo={repo_name} ===")
+    logger.log("HEADER", f"Get images in repository: {repo_name}")
 
     url = f"{base_url}/registries/{registry_id}/repositories/{quote(repo_name, safe='')}/images"
     res = session.get(url, headers=_get_auth_header(token), timeout=GET_TIMEOUT)
-
-    logger.debug(f"Images status {repo_name}: {res.status_code}")
+    
     context = f"Repo {repo_name}"
 
     data = _handle_api_response(res, context)
@@ -60,19 +61,31 @@ def get_images(session, base_url, registry_id, token, repo_name):
     return data
 
 
-def delete_image(session, base_url, registry_id, token, repo_name, digest, dry_run):
-    logger.log("HEADER", f"=== delete_image() repo={repo_name} digest={digest} ===")
+def delete_image(session, base_url, registry_id, token, repo_name, digest, tag, dry_run):
+    logger.log("HEADER", f"Image to delete: repo={repo_name} tag={tag}")
+    short_digest = digest[:16]
 
     if dry_run:
-        logger.info(f"[DRY-RUN] Would delete {repo_name} {digest}")
+        logger.info(f"[DRY-RUN] Would delete: {repo_name} {tag}:{short_digest}")
         return
 
     url = f"{base_url}/registries/{registry_id}/repositories/{quote(repo_name, safe='')}/{digest}"
-    res = session.delete(url, headers=_get_auth_header(token), timeout=DELETE_TIMEOUT)
 
-    logger.debug(f"Delete status {digest}: {res.status_code}")
+    for attempt in range(1, DELETE_RETRY_COUNT + 1):
+        res = session.delete(url, headers=_get_auth_header(token), timeout=DELETE_TIMEOUT)
+        logger.debug(f"Delete status {tag} {short_digest} : {res.status_code}")
 
-    if res.status_code == 204:
-        logger.success(f"Deleted {repo_name} {digest}")
-    else:
-        logger.critical(f"Delete failed {digest}: {res.status_code} {res.text}")
+        if res.status_code == 204:
+            logger.success(f"Deleted {repo_name} {tag}:{short_digest}")
+            return
+
+        if res.status_code == 409:
+            if attempt < DELETE_RETRY_COUNT:
+                logger.warning(
+                    f"Delete {tag}:{short_digest} got 409 error (garbage collection), "
+                    f"retry {attempt}/{DELETE_RETRY_COUNT - 1} in {DELETE_RETRY_DELAY}s"
+                )
+                time.sleep(DELETE_RETRY_DELAY)
+                continue
+            logger.critical(f"Delete failed tag: {tag}:{short_digest} after {DELETE_RETRY_COUNT} attempts: {res.status_code} {res.text}")
+            return

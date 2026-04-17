@@ -54,7 +54,7 @@ def create_session() -> requests.Session:
     return session
 
 def get_auth_token(session: requests.Session, settings: Settings) -> str:
-    logger.log("HEADER", "Requesting authentication token...")
+    logger.log("HEADER", "Requesting authentication token")
     
     payload = {
         "auth": {
@@ -108,11 +108,9 @@ def main():
             logger.warning("No repositories found.")
             return
 
-        logger.info(f"Repositories to process: {[r['name'] for r in repos]}")
-
         for repo in repos:
             repo_name = repo["name"]
-            logger.info(f"\nProcessing repository: {repo_name}")
+            logger.info(f"Processing repository: {repo_name}")
 
             images = get_images(session, BASE_URL, settings.registry_id, token, repo_name)
             to_delete = select_images_to_delete(repo_name, images, rules)
@@ -125,6 +123,7 @@ def main():
 
             for img in to_delete:
                 digest = img.get(ImageFields.DIGEST.value)
+                tag = img.get(ImageFields.TAGS.value)
                 
                 delete_image(
                     session=session,
@@ -133,6 +132,7 @@ def main():
                     token=token,
                     repo_name=repo_name,
                     digest=digest,
+                    tag=tag,
                     dry_run=settings.dry_run,
                 )
 

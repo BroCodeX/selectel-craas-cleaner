@@ -121,7 +121,7 @@ def test_get_images_cache_repo_url_encoded():
 def test_delete_image_simple_repo_url():
     """Simple repo name must not be altered in delete URL."""
     session = FakeSession(FakeResponse(204))
-    delete_image(session, BASE_URL, REGISTRY_ID, TOKEN, "myapp", "sha256:abc", dry_run=False)
+    delete_image(session, BASE_URL, REGISTRY_ID, TOKEN, "myapp", "sha256:abc", tag="latest", dry_run=False)
 
     expected = f"{BASE_URL}/registries/{REGISTRY_ID}/repositories/myapp/sha256:abc"
     assert session.last_delete_url == expected
@@ -132,7 +132,7 @@ def test_delete_image_slash_repo_url_encoded():
     session = FakeSession(FakeResponse(204))
     delete_image(
         session, BASE_URL, REGISTRY_ID, TOKEN,
-        "build/buildkit-test", "sha256:deadbeef", dry_run=False
+        "build/buildkit-test", "sha256:deadbeef", tag="latest", dry_run=False
     )
 
     expected = (
@@ -146,7 +146,7 @@ def test_delete_image_dry_run_does_not_call_api():
     session = FakeSession(FakeResponse(204))
     delete_image(
         session, BASE_URL, REGISTRY_ID, TOKEN,
-        "build/buildkit-test", "sha256:deadbeef", dry_run=True
+        "build/buildkit-test", "sha256:deadbeef", tag="latest", dry_run=True
     )
 
     assert session.last_delete_url is None

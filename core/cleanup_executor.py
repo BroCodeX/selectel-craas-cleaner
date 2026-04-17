@@ -68,11 +68,6 @@ def select_images_to_delete(repo_name, images, cleanup_rules, now=None):
         rule = cleanup_rules.get(rule_name, {}) 
         keep_latest, remove_older_days = _resolve_rule_limits(rule_name, rule)
 
-        logger.info(
-            f"Rule: {rule_name}, matched images: {len(rule_images)}, "
-            f"keep latest: {keep_latest}, remove older: {remove_older_days} days"
-        )
-
         protected = rule_images[:keep_latest]
         candidates = rule_images[len(protected):]
 
@@ -80,10 +75,15 @@ def select_images_to_delete(repo_name, images, cleanup_rules, now=None):
             image for image in candidates if _is_older_than_days(image, remove_older_days, now_utc)
         ]
 
-        logger.info(
-            f"Rule '{rule_name}': protected={len(protected)}, "
-            f"candidates={len(candidates)}, to_delete_by_age={len(old_candidates)}"
-        )
+        if candidates:
+            logger.info(
+                f"Rule: {rule_name}: matched images: {len(rule_images)}, "
+                f"keep latest: {keep_latest}, remove older: {remove_older_days} days"
+            )
+            logger.info(
+                f"Rule: {rule_name}: protected={len(protected)}, "
+                f"candidates={len(candidates)}, to_delete_by_age={len(old_candidates)}"
+            )
 
         to_delete.extend(old_candidates)
 
